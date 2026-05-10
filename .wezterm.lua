@@ -6,6 +6,10 @@ local wezterm = require("wezterm")
 local config = wezterm.config_builder()
 local act = wezterm.action
 
+local sessions = wezterm.plugin.require(
+  "https://github.com/abidibo/wezterm-sessions"
+)
+
 -- ─────────────────────────────────────────────
 -- APPEARANCE — matches Windows Terminal defaults
 -- ─────────────────────────────────────────────
@@ -37,6 +41,9 @@ config.window_padding = {
   top = 8,
   bottom = 8,
 }
+
+config.initial_cols = 120
+config.initial_rows = 40
 
 -- Show scrollbar like Windows Terminal
 config.enable_scroll_bar = true
@@ -126,45 +133,75 @@ config.keys = {
   -- Enter copy mode: Ctrl+Shift+X
   -- Once inside: Shift+Arrows to select, Ctrl+Shift+C to copy, Esc to exit
   { key = "x", mods = "CTRL|SHIFT", action = act.ActivateCopyMode },
-}
 
--- ─────────────────────────────────────────────
--- COPY MODE — Shift+Arrow keys to select text
--- (only active after pressing Ctrl+Shift+X)
--- ─────────────────────────────────────────────
-
-local copy_mode = wezterm.gui.default_key_tables().copy_mode
-
--- Shift+Arrow: start selection and move
-table.insert(copy_mode, { key = "LeftArrow",  mods = "SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveLeft"),
-})})
-table.insert(copy_mode, { key = "RightArrow", mods = "SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveRight"),
-})})
-table.insert(copy_mode, { key = "UpArrow",    mods = "SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveUp"),
-})})
-table.insert(copy_mode, { key = "DownArrow",  mods = "SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveDown"),
-})})
-
--- Ctrl+Shift+Arrow: select word by word
-table.insert(copy_mode, { key = "LeftArrow",  mods = "CTRL|SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveBackwardWord"),
-})})
-table.insert(copy_mode, { key = "RightArrow", mods = "CTRL|SHIFT", action = act.Multiple({
-  act.CopyMode({ SetSelectionMode = "Cell" }),
-  act.CopyMode("MoveForwardWord"),
-})})
-
-config.key_tables = {
-  copy_mode = copy_mode,
+  {
+    key = 's',
+    mods = 'ALT',
+    action = act.PromptInputLine {
+          description = 'Enter new workspace name',
+          action = wezterm.action_callback(
+              function(window, pane, line)
+                  if line then
+                      wezterm.mux.rename_workspace(wezterm.mux.get_active_workspace(), line)
+                  end
+              end
+          ),
+      },
+  },
+  {
+      key = 'w',
+      mods = 'ALT',
+      action = act.PromptInputLine {
+          description = wezterm.format {
+              { Attribute = { Intensity = 'Bold' } },
+              { Foreground = { AnsiColor = 'Fuchsia' } },
+              { Text = 'Enter name for new workspace' },
+          },
+          action = wezterm.action_callback(function(window, pane, line)
+              -- line will be `nil` if they hit escape without entering anything
+              -- An empty string if they just hit enter
+              -- Or the actual line of text they wrote
+              if line then
+                  window:perform_action(
+                      act.SwitchToWorkspace {
+                          name = line,
+                      },
+                      pane
+                  )
+              end
+          end),
+      },
+  },
+  {
+    key = 'l',
+    mods = 'ALT',
+    action = act({ EmitEvent = "load_session" }),
+  },
+  {
+    key = 'r',
+    mods = 'ALT',
+    action = act({ EmitEvent = "restore_session" }),
+  },
+  {
+    key = 'd',
+    mods = 'CTRL|SHIFT',
+    action = act({ EmitEvent = "delete_session" }),
+  },
+  {
+    key = 'e',
+    mods = 'CTRL|SHIFT',
+    action = act({ EmitEvent = "edit_session" }),
+  },
+  {
+    key = 'a',
+    mods = 'ALT',
+    action = act({ EmitEvent = "toggle_autosave" }),
+  },
+  {
+    key = 'f',
+    mods = 'ALT',
+    action = act({ EmitEvent = "fork_session" }),
+  },
 }
 
 -- ─────────────────────────────────────────────

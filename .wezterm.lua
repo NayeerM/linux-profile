@@ -106,6 +106,7 @@ config.use_fancy_tab_bar            = false
 config.hide_tab_bar_if_only_one_tab = false
 config.tab_and_split_indices_are_zero_based = true
 config.tab_max_width                = 32
+config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.7 }
 
 local function tab_title(tab_info)
     local title = tab_info.tab_title
@@ -168,6 +169,13 @@ wezterm.on("update-status", function(window, _)
         arrow_bg,
         { Text = arrow },
     })
+    
+    window:set_right_status(wezterm.format {
+        { Foreground = { Color = colors.mauve } },
+        { Text = "  " .. wezterm.nerdfonts.md_briefcase_outline .. "  " },
+        { Foreground = { Color = colors.text } },
+        { Text = window:active_workspace() .. "  " },
+    })
 end)
 
 -- ─────────────────────────────────────────────
@@ -179,7 +187,7 @@ config.leader = { key = "q", mods = "ALT", timeout_milliseconds = 2000 }
 config.keys = {
     -- Tabs
     { key = "t",   mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
-    { key = "w",   mods = "CTRL|SHIFT", action = act.CloseCurrentTab({ confirm = true }) },
+    { key = "w",   mods = "CTRL|SHIFT", action = act.CloseCurrentTab({ confirm = false }) },
     { key = "Tab", mods = "CTRL",       action = act.ActivateTabRelative(1) },
     { key = "Tab", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 
@@ -205,6 +213,7 @@ config.keys = {
     { key = "Enter", mods = "ALT",        action = act.ToggleFullScreen },
     { key = "p",     mods = "CTRL|SHIFT", action = act.ActivateCommandPalette },
     { key = "x",     mods = "CTRL|SHIFT", action = act.ActivateCopyMode },
+    { key = 'l', mods = 'ALT', action = wezterm.action.ShowLauncher },
 
     -- Save workspaces
     {
@@ -313,13 +322,14 @@ config.selection_word_boundary = " \t\n{}[]()\"'`,;:@│"
 config.scrollback_lines         = 9001
 config.audible_bell             = "Disabled"
 config.visual_bell              = { fade_in_duration_ms = 75, fade_out_duration_ms = 75 }
-config.window_close_confirmation = "AlwaysPrompt"
+config.window_close_confirmation = "NeverPrompt"
 config.max_fps                  = 60
+config.front_end		        = "WebGpu"
 
 if isWindows then
   table.insert(launch_menu, {
     label = 'PowerShell',
-    args = { 'powershell.exe', '-NoLogo' },
+    args = { 'pwsh.exe', '-NoLogo' },
   })
 else
   table.insert(launch_menu, {
@@ -334,12 +344,19 @@ end
 
 config.launch_menu = launch_menu
 
-config.unix_domains = {
-  {
-    name = 'unix',
-  },
-}
+if not isWindows then
 
-config.default_gui_startup_args = { 'connect', 'unix' }
+    config.unix_domains = {
+      {
+        name = 'unix',
+      },
+    }
+
+    config.default_gui_startup_args = { 'connect', 'unix' }
+end
+
+if isWindows then
+  config.default_domain = 'WSL:Ubuntu-24.04'
+end
 
 return config

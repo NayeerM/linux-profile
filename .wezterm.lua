@@ -7,7 +7,7 @@ local isWindows = wezterm.target_triple:find("windows")
 
 local resurrect = wezterm.plugin.require("https://github.com/MLFlexer/resurrect.wezterm")
 resurrect.state_manager.periodic_save({
-    interval_seconds = 60,
+    interval_seconds = 5 * 60,
     save_workspaces = true,
     save_windows = true,
     save_tabs = true,
@@ -344,8 +344,12 @@ end
 
 config.launch_menu = launch_menu
 
-if not isWindows then
-
+if isWindows then
+    
+    -- config.default_domain = 'WSL:Ubuntu-24.04'
+    config.default_prog = { "wsl.exe", "-d", "Ubuntu-24.04", "--cd", "~" }
+    resurrect.state_manager.change_state_save_dir("C:\\Users\\nayeer\\wezterm\\state\\")
+else
     config.unix_domains = {
       {
         name = 'unix',
@@ -353,10 +357,6 @@ if not isWindows then
     }
 
     config.default_gui_startup_args = { 'connect', 'unix' }
-end
-
-if isWindows then
-  config.default_domain = 'WSL:Ubuntu-24.04'
 end
 
 return config
